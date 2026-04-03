@@ -16,6 +16,13 @@ An MCP (Model Context Protocol) server that provides professional cycling data f
 ## Installation
 
 ```bash
+pip install git+https://github.com/lewis-mcgillion/procyclingstats-mcp-server.git
+```
+
+Or clone and install locally:
+
+```bash
+git clone https://github.com/lewis-mcgillion/procyclingstats-mcp-server.git
 cd procyclingstats-mcp-server
 pip install -e .
 ```
@@ -30,20 +37,22 @@ procyclingstats-mcp
 
 ### Configure in your MCP client
 
-Add to your MCP client config (e.g. Claude Desktop, VS Code GitHub Copilot):
+Add to your MCP client config (e.g. Claude Desktop, VS Code GitHub Copilot).
+
+**Recommended — using `uvx`** (no manual install needed):
 
 ```json
 {
   "mcpServers": {
     "procyclingstats": {
-      "command": "procyclingstats-mcp",
-      "args": []
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/lewis-mcgillion/procyclingstats-mcp-server.git", "procyclingstats-mcp"]
     }
   }
 }
 ```
 
-Or if using `uv`:
+**Using a local clone with `uv`:**
 
 ```json
 {
@@ -51,6 +60,19 @@ Or if using `uv`:
     "procyclingstats": {
       "command": "uv",
       "args": ["run", "--directory", "/path/to/procyclingstats-mcp-server", "procyclingstats-mcp"]
+    }
+  }
+}
+```
+
+**Using a global install:**
+
+```json
+{
+  "mcpServers": {
+    "procyclingstats": {
+      "command": "procyclingstats-mcp",
+      "args": []
     }
   }
 }
