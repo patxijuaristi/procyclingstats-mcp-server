@@ -32,12 +32,7 @@ RACE_CALENDAR_URLS = {
     "class2": "races.php?year={year}&circuit=&class=1.2&filter=Filter",
 }
 
-_EXCLUDE_PATTERNS = [
-    "-we", "-wj", "-wu-", "women", "woman", "ladies", "lady",
-    "feminin", "femina", "feminas", "féminin",
-    "dames", "dame", "-mj", "junior", "juniores", "junioren", "u23", "u19",
-    "ceratizit-festival",
-]
+
 
 
 def _rate_limit():
@@ -119,12 +114,8 @@ def discover_races(year: int, tiers: Optional[list[str]] = None) -> list[dict[st
         except Exception as e:
             log.warning(f"Error fetching {tier} calendar for {year}: {e}")
 
-    # Filter out women's/junior/U23 races
     result = []
     for race_url, race_tiers in sorted(all_races.items()):
-        race_lower = race_url.lower()
-        if any(pat in race_lower for pat in _EXCLUDE_PATTERNS):
-            continue
         result.append({
             "race_url": race_url,
             "tiers": sorted(race_tiers),
