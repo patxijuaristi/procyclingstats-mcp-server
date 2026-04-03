@@ -4,11 +4,41 @@ version = "0.1.0"
 description = "MCP server for fetching professional cycling data from ProCyclingStats"
 readme = "README.md"
 requires-python = ">=3.10"
+license = "Unlicense"
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "cycling",
+    "procyclingstats",
+    "pcs",
+    "pro-cycling",
+    "tour-de-france",
+    "sports-data",
+    "web-scraping",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: The Unlicense (Unlicense)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
 dependencies = [
     "fastmcp>=2.0.0",
     "procyclingstats>=0.2.0",
     "cloudscraper>=1.2.71",
 ]
+
+[project.urls]
+Homepage = "https://github.com/lewis-mcgillion/procyclingstats-mcp-server"
+Repository = "https://github.com/lewis-mcgillion/procyclingstats-mcp-server"
+Issues = "https://github.com/lewis-mcgillion/procyclingstats-mcp-server/issues"
 
 [project.scripts]
 procyclingstats-mcp = "procyclingstats_mcp.server:main"
