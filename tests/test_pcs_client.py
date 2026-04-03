@@ -25,7 +25,7 @@ class TestDiscoverRaces:
 
     @patch.object(pcs_client, "_scraper")
     def test_invalid_tier_raises_error(self, mock_scraper):
-        """Bug #8: Invalid tier names should raise ValueError, not silently return empty."""
+        """Invalid tier names should raise ValueError."""
         with pytest.raises(ValueError, match="Invalid tier"):
             pcs_client.discover_races(2025, tiers=["invalid_tier"])
 
@@ -43,7 +43,7 @@ class TestDiscoverRaces:
 
     @patch.object(pcs_client, "_scraper")
     def test_future_year_raises_error(self, mock_scraper):
-        """Bug #9: Years too far in the future should be rejected."""
+        """Years too far in the future should be rejected."""
         current_year = 2026  # approximate
         with pytest.raises(ValueError, match="[Yy]ear"):
             pcs_client.discover_races(current_year + 2)
@@ -68,7 +68,7 @@ class TestGetRaceOverview:
     """Tests for get_race_overview input validation and error handling."""
 
     def test_base_url_without_year_raises(self):
-        """Bug #1: Base URL like 'race/tour-de-france' should raise, not return garbled data."""
+        """Base URL without a year should raise ValueError."""
         with pytest.raises(ValueError, match="[Yy]ear"):
             pcs_client.get_race_overview("race/tour-de-france")
 
@@ -79,7 +79,7 @@ class TestGetRaceOverview:
 
     @patch.object(pcs_client, "_pcs_fetch")
     def test_nonexistent_race_returns_error(self, mock_fetch):
-        """Bug #5: Non-existent race should return friendly error, not crash."""
+        """Non-existent race should return an error dict."""
         mock_fetch.side_effect = Exception("list index out of range")
         result = pcs_client.get_race_overview("race/fake-race/2025")
         assert "error" in result
@@ -120,7 +120,7 @@ class TestGetStageResults:
 
     @patch.object(pcs_client, "_pcs_fetch")
     def test_nonexistent_stage_returns_error(self, mock_fetch):
-        """Bug #6: Non-existent stage should return error dict, not crash."""
+        """Non-existent stage should return an error dict."""
         mock_fetch.side_effect = AttributeError("'NoneType' object has no attribute 'css'")
         result = pcs_client.get_stage_results("race/tour-de-france/2025/stage-99")
         assert "error" in result
@@ -134,7 +134,7 @@ class TestGetRiderProfile:
     """Tests for get_rider_profile input validation."""
 
     def test_empty_url_raises(self):
-        """Bug #2: Empty string should raise ValueError, not IndexError."""
+        """Empty string should raise ValueError."""
         with pytest.raises(ValueError):
             pcs_client.get_rider_profile("")
 
@@ -145,7 +145,7 @@ class TestGetRiderProfile:
 
     @patch.object(pcs_client, "_pcs_fetch")
     def test_nonexistent_rider_returns_error(self, mock_fetch):
-        """Non-existent rider should return error dict, not crash."""
+        """Non-existent rider should return an error dict."""
         mock_fetch.side_effect = Exception("HTML from given URL is invalid")
         result = pcs_client.get_rider_profile("rider/fake-rider-doesnt-exist")
         assert "error" in result
@@ -165,7 +165,7 @@ class TestGetRaceStartlist:
 
     @patch.object(pcs_client, "_pcs_fetch")
     def test_nonexistent_race_returns_error(self, mock_fetch):
-        """Bug #7: Non-existent race should return error dict, not crash."""
+        """Non-existent race should return an error dict."""
         mock_fetch.side_effect = AttributeError("'NoneType' object has no attribute 'css'")
         result = pcs_client.get_race_startlist("race/fake-race/2025")
         assert "error" in result
@@ -179,7 +179,7 @@ class TestSearchPcs:
     """Tests for search_pcs input validation and sanitization."""
 
     def test_empty_query_returns_empty(self):
-        """Bug #3: Empty query should return empty list, not default results."""
+        """Empty query should return an empty list."""
         result = pcs_client.search_pcs("")
         assert result == []
 
@@ -190,7 +190,7 @@ class TestSearchPcs:
 
     @patch.object(pcs_client, "_scraper")
     def test_xss_payload_is_sanitized(self, mock_scraper):
-        """Bug #4: Script tags in query should be stripped from response."""
+        """Script tags in query should not cause errors."""
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.text = '<a href="rider/test">Test Rider</a>'
@@ -232,7 +232,7 @@ class TestServerSearchSanitization:
 
     @patch.object(pcs_client, "search_pcs", return_value=[])
     def test_xss_query_sanitized_in_response(self, mock_search):
-        """Bug #4: The query echoed in the response must not contain HTML tags."""
+        """The query echoed in the response must not contain HTML tags."""
         from procyclingstats_mcp.server import search_pcs as server_search_pcs
         import json
 
