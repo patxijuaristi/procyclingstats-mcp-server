@@ -5,9 +5,11 @@ Adapted from cycling-predictor/data/scraper.py. Stateless: no SQLite caching,
 just fetch → parse → return dicts. Rate-limited and retries on server errors.
 """
 
+import html
 import json
 import logging
 import re
+import threading
 import time
 from typing import Any, Optional
 
@@ -22,6 +24,7 @@ PCS_BASE = "https://www.procyclingstats.com"
 # Rate limiter
 # ---------------------------------------------------------------------------
 _last_request_time = 0.0
+_rate_limit_lock = threading.Lock()
 REQUEST_DELAY = 0.5  # seconds between PCS requests
 MAX_RETRIES = 3
 
@@ -32,15 +35,19 @@ RACE_CALENDAR_URLS = {
     "class2": "races.php?year={year}&circuit=&class=1.2&filter=Filter",
 }
 
+# Shared HTTP session — reused across requests to avoid resource leaks
+_scraper = cloudscraper.create_scraper()
+
 
 
 
 def _rate_limit():
     global _last_request_time
-    elapsed = time.time() - _last_request_time
-    if elapsed < REQUEST_DELAY:
-        time.sleep(REQUEST_DELAY - elapsed)
-    _last_request_time = time.time()
+    with _rate_limit_lock:
+        elapsed = time.time() - _last_request_time
+        if elapsed < REQUEST_DELAY:
+            time.sleep(REQUEST_DELAY - elapsed)
+        _last_request_time = time.time()
 
 
 def _pcs_fetch(pcs_class, url: str, retries: int = MAX_RETRIES):
@@ -83,7 +90,6 @@ def discover_races(year: int, tiers: Optional[list[str]] = None) -> list[dict[st
 
     Returns list of dicts with race base URLs and the tier they were found in.
     """
-    scraper = cloudscraper.create_scraper()
 
     if tiers is None:
         tiers = ["worldtour", "proseries"]
@@ -98,7 +104,7 @@ def discover_races(year: int, tiers: Optional[list[str]] = None) -> list[dict[st
         url = f"{PCS_BASE}/{url_template.format(year=year)}"
         _rate_limit()
         try:
-            resp = scraper.get(url, timeout=30)
+            resp = _scraper.get(url, timeout=30)
             if resp.status_code != 200:
                 log.warning(f"Failed to fetch {tier} calendar for {year}: HTTP {resp.status_code}")
                 continue
@@ -293,7 +299,7 @@ def search_pcs(query: str, max_results: int = 20) -> list[dict[str, Any]]:
         query: Free-text search query (e.g. 'Pogacar', 'Tour de France').
         max_results: Maximum number of results to return.
     """
-    scraper = cloudscraper.create_scraper()
+    scraper = _scraper
     url = f"{PCS_BASE}/search.php"
     _rate_limit()
 
@@ -321,9 +327,10 @@ def search_pcs(query: str, max_results: int = 20) -> list[dict[str, Any]]:
             if match_url in seen_urls:
                 continue
             seen_urls.add(match_url)
-            # Clean HTML tags from name
-            clean_name = re.sub(r"<[^>]+>", "", match_name)
-            clean_name = re.sub(r"&nbsp;", " ", clean_name)
+            # Strip HTML tags and their content for script/style, then remaining tags
+            clean_name = re.sub(r"<(script|style)[^>]*>.*?</\1>", "", match_name, flags=re.DOTALL | re.IGNORECASE)
+            clean_name = re.sub(r"<[^>]+>", "", clean_name)
+            clean_name = html.unescape(clean_name)
             clean_name = re.sub(r"\s+", " ", clean_name).strip()
             if clean_name:
                 results.append({
