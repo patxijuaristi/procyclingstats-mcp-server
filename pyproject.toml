@@ -1,0 +1,21 @@
+[project]
+name = "procyclingstats-mcp-server"
+version = "0.1.0"
+description = "MCP server for fetching professional cycling data from ProCyclingStats"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "procyclingstats>=0.2.0",
+    "cloudscraper>=1.2.71",
+]
+
+[project.scripts]
+procyclingstats-mcp = "procyclingstats_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/procyclingstats_mcp"]
