@@ -11,6 +11,7 @@ import logging
 import re
 import threading
 import time
+from datetime import datetime
 from typing import Any, Optional
 
 import cloudscraper
@@ -37,6 +38,24 @@ RACE_CALENDAR_URLS = {
 
 # Shared HTTP session — reused across requests to avoid resource leaks
 _scraper = cloudscraper.create_scraper()
+
+
+def _validate_url(url: str, prefix: str, label: str):
+    """Raise ValueError if url is empty or doesn't start with the expected prefix."""
+    if not url or not url.strip():
+        raise ValueError(f"{label} URL cannot be empty.")
+    if not url.startswith(prefix):
+        raise ValueError(f"{label} URL must start with '{prefix}'. Got: '{url}'")
+
+
+def _validate_race_url_has_year(url: str):
+    """Raise ValueError if a race URL is missing the year component."""
+    parts = url.strip("/").split("/")
+    # Expected: race/<name>/<year> — at least 3 parts with a numeric year
+    if len(parts) < 3 or not parts[2].isdigit():
+        raise ValueError(
+            f"Race URL must include a year (e.g. 'race/tour-de-france/2025'). Got: '{url}'"
+        )
 
 
 
@@ -90,6 +109,21 @@ def discover_races(year: int, tiers: Optional[list[str]] = None) -> list[dict[st
 
     Returns list of dicts with race base URLs and the tier they were found in.
     """
+    max_year = datetime.now().year + 1
+    if year > max_year:
+        raise ValueError(
+            f"Year {year} is too far in the future. Maximum allowed: {max_year}."
+        )
+
+    if tiers is not None:
+        if len(tiers) == 0:
+            return []
+        invalid = set(tiers) - set(RACE_CALENDAR_URLS.keys())
+        if invalid:
+            raise ValueError(
+                f"Invalid tier(s): {sorted(invalid)}. "
+                f"Valid tiers: {sorted(RACE_CALENDAR_URLS.keys())}"
+            )
 
     if tiers is None:
         tiers = ["worldtour", "proseries"]
@@ -138,8 +172,14 @@ def get_race_overview(race_url: str) -> dict[str, Any]:
         race_url: Full race URL like 'race/tour-de-france/2025' or base URL
                   like 'race/tour-de-france' (year defaults to latest).
     """
-    race = _pcs_fetch(Race, race_url)
-    data = race.parse()
+    _validate_url(race_url, "race/", "Race")
+    _validate_race_url_has_year(race_url)
+
+    try:
+        race = _pcs_fetch(Race, race_url)
+        data = race.parse()
+    except Exception as e:
+        return {"error": f"Failed to fetch race '{race_url}': {e}", "url": race_url}
 
     stages_list = []
     try:
@@ -175,8 +215,13 @@ def get_stage_results(stage_url: str) -> dict[str, Any]:
         stage_url: PCS stage URL like 'race/tour-de-france/2025/stage-1'
                    or one-day race result like 'race/milano-sanremo/2025/result'.
     """
-    stage = _pcs_fetch(Stage, stage_url)
-    data = stage.parse()
+    _validate_url(stage_url, "race/", "Stage")
+
+    try:
+        stage = _pcs_fetch(Stage, stage_url)
+        data = stage.parse()
+    except Exception as e:
+        return {"error": f"Failed to fetch stage '{stage_url}': {e}", "url": stage_url}
 
     climbs = data.get("climbs", [])
 
@@ -224,8 +269,14 @@ def get_rider_profile(rider_url: str) -> dict[str, Any]:
     Args:
         rider_url: PCS rider URL like 'rider/tadej-pogacar'.
     """
-    rider = _pcs_fetch(Rider, rider_url)
-    data = rider.parse()
+    _validate_url(rider_url, "rider/", "Rider")
+
+    try:
+        rider = _pcs_fetch(Rider, rider_url)
+        data = rider.parse()
+    except Exception as e:
+        return {"error": f"Failed to fetch rider '{rider_url}': {e}", "url": rider_url}
+
     spec = data.get("points_per_speciality", {}) or {}
     pts_history = data.get("points_per_season_history", [])
 
@@ -256,12 +307,17 @@ def get_race_startlist(race_url: str) -> dict[str, Any]:
         race_url: Race URL like 'race/tour-de-france/2025'. The /startlist
                   suffix is appended automatically if not present.
     """
+    _validate_url(race_url, "race/", "Race")
+
     startlist_url = race_url.rstrip("/")
     if not startlist_url.endswith("/startlist"):
         startlist_url = f"{startlist_url}/startlist"
 
-    sl = _pcs_fetch(RaceStartlist, startlist_url)
-    data = sl.parse()
+    try:
+        sl = _pcs_fetch(RaceStartlist, startlist_url)
+        data = sl.parse()
+    except Exception as e:
+        return {"error": f"Failed to fetch startlist '{startlist_url}': {e}", "url": startlist_url}
 
     riders = []
     for r in data.get("startlist", []):
@@ -299,6 +355,9 @@ def search_pcs(query: str, max_results: int = 20) -> list[dict[str, Any]]:
         query: Free-text search query (e.g. 'Pogacar', 'Tour de France').
         max_results: Maximum number of results to return.
     """
+    if not query or not query.strip():
+        return []
+
     scraper = _scraper
     url = f"{PCS_BASE}/search.php"
     _rate_limit()

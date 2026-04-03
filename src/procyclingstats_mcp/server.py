@@ -8,6 +8,7 @@ results, rider profiles, startlists, and search.
 
 import json
 import logging
+import re
 from typing import Any, Optional
 
 from fastmcp import FastMCP
@@ -131,8 +132,9 @@ def search_pcs(query: str, max_results: int = 20) -> str:
         JSON list of search results with type (rider/race/team), name, and URL.
     """
     results = pcs_client.search_pcs(query, max_results=max_results)
+    safe_query = re.sub(r"<[^>]+>", "", query).strip()
     return _format_result({
-        "query": query,
+        "query": safe_query,
         "total_results": len(results),
         "results": results,
     })
