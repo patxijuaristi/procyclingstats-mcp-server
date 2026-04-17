@@ -106,6 +106,22 @@ def get_rider_profile(rider_url: str) -> str:
 
 
 @mcp.tool
+def get_rider_results(rider_url: str, season: Optional[int] = None) -> str:
+    """Get a rider's race results for a specific season.
+
+    Args:
+        rider_url: PCS rider URL, e.g. 'rider/tadej-pogacar'.
+        season: Year to fetch results for (e.g. 2025). Defaults to current year.
+
+    Returns:
+        JSON list of race results with date, race name, position, GC position,
+        distance, and points.
+    """
+    data = pcs_client.get_rider_results(rider_url, season=season)
+    return _format_result(data)
+
+
+@mcp.tool
 def get_race_startlist(race_url: str) -> str:
     """Get the startlist for a race.
 

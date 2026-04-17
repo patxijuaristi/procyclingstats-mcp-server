@@ -300,6 +300,46 @@ def get_rider_profile(rider_url: str) -> dict[str, Any]:
     }
 
 
+def get_rider_results(rider_url: str, season: Optional[int] = None) -> dict[str, Any]:
+    """Fetch a rider's race results for a given season (defaults to current year).
+
+    Args:
+        rider_url: PCS rider URL like 'rider/tadej-pogacar'.
+        season: Year to fetch results for. Defaults to current year.
+    """
+    _validate_url(rider_url, "rider/", "Rider")
+
+    target_season = season or datetime.now().year
+    versioned_url = f"{rider_url}/results/{target_season}"
+
+    try:
+        rider = _pcs_fetch(Rider, versioned_url)
+        results_raw = rider.season_results()
+    except Exception as e:
+        return {"error": f"Failed to fetch results for '{rider_url}': {e}", "url": rider_url}
+
+    results = []
+    for r in results_raw:
+        results.append({
+            "date": r.get("date"),
+            "stage_name": r.get("stage_name"),
+            "stage_url": r.get("stage_url"),
+            "result": r.get("result"),
+            "gc_position": r.get("gc_position"),
+            "distance": _safe_float(r.get("distance")),
+            "pcs_points": _safe_float(r.get("pcs_points")),
+            "uci_points": _safe_float(r.get("uci_points")),
+        })
+
+    return {
+        "url": rider_url,
+        "season": target_season,
+        "total_results": len(results),
+        "results": results,
+        "pcs_link": f"{PCS_BASE}/{versioned_url}",
+    }
+
+
 def get_race_startlist(race_url: str) -> dict[str, Any]:
     """Fetch race startlist.
 

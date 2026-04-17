@@ -10,6 +10,7 @@ An MCP (Model Context Protocol) server that provides professional cycling data f
 | `get_race_overview` | Get race metadata — name, dates, category, stages list |
 | `get_stage_results` | Get full stage/one-day race results with metadata |
 | `get_rider_profile` | Get rider bio, physical stats, specialty scores, palmares |
+| `get_rider_results` | Get a rider's race results for a specific season |
 | `get_race_startlist` | Get the startlist for a race grouped by team |
 | `search_pcs` | Free-text search for riders, races, and teams |
 
