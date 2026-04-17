@@ -310,7 +310,7 @@ def get_rider_results(rider_url: str, season: Optional[int] = None) -> dict[str,
     _validate_url(rider_url, "rider/", "Rider")
 
     target_season = season or datetime.now().year
-    versioned_url = f"{rider_url}/results/{target_season}"
+    versioned_url = f"{rider_url}/{target_season}"
 
     try:
         rider = _pcs_fetch(Rider, versioned_url)
